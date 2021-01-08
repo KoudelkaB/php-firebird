@@ -150,6 +150,10 @@ static void _php_ibase_free_result(zend_resource *rsrc) /* {{{ */
 				/* If we are the last execution result on the query */
 				ib_result->query->result = NULL;	/* Indicate to query, that result is released */
 			}
+			else {
+				php_printf("ERROR: Invalid query result encountered - ib_result->query->result(%x) != ib_result(%x)\n", ib_result->query->query, ib_result);
+				php_error_docref(NULL, E_ERROR, "Invalid query result encountered - ib_result->query->result(%x) != ib_result(%x)", ib_result->query->query, ib_result); /* throw exception*/
+			}
 		} else {
 			_php_ibase_free_stmt_handle(ib_result->link, ib_result->stmt);
 		}
@@ -172,6 +176,10 @@ static void _php_ibase_free_query(ibase_query *ib_query) /* {{{ */
 		IBDEBUG("result still valid; don't drop statement handle");
 		if (ib_query->result->query == ib_query) {
 			ib_query->result->query = NULL;	/* Indicate to result, that query is released */
+		}
+		else {
+			php_printf("ERROR: Invalid result query encountered - ib_query->result->query(%x) != ib_query(%x)\n", ib_query->result->query, ib_query);
+			php_error_docref(NULL, E_ERROR, "Invalid result query encountered - ib_query->result->query(%x) != ib_query(% x)", ib_query->result->query, ib_query); /* throw exception*/
 		}
 	} else {
 		_php_ibase_free_stmt_handle(ib_query->link, ib_query->stmt);
@@ -1855,8 +1863,8 @@ PHP_FUNCTION(ibase_execute)
 				break;
 			}
 			if (ib_query->result_res->gc.refcount > 1) {
-				php_printf("ERROR: Query result of '%s' was not released before executing the same query again!\n", ib_query->query);
-				php_error_docref(NULL, E_ERROR, "Query result of '%s' was not released before executing the same query again!", ib_query->query); /* throw exception*/
+				php_printf("WARNING: Query result of '%s' was not released before executing the same query again!\n", ib_query->query);
+				php_error_docref(NULL, E_WARNING, "Query result of '%s' was not released before executing the same query again!", ib_query->query);
 			}
 			zend_list_delete(ib_query->result_res);
 			ib_query->result_res = NULL;
